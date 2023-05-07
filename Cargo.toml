@@ -1,0 +1,18 @@
+[package]
+name = "tower_game"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[dependencies]
+bevy = { version = "0.10.0", features = ["wav"] }
+bevy-inspector-egui = "0.18.0"
+bevy_rapier3d = { version = "0.21.0", features = [ "debug-render-3d" ] }
+bevy_mod_picking = { git = "https://github.com/Fincap/bevy_mod_picking.git", branch = "migrate-bevy-0.10.0" }
