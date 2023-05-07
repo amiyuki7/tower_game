@@ -14,7 +14,10 @@ fn main() {
             }),
             ..default()
         }))
+        .add_state::<GameState>()
         .add_plugin(WorldInspectorPlugin::new())
+        .add_plugin(MainMenuPlugin)
+        .add_plugin(PlayerPlugin)
         .add_plugin(TowerPlugin)
         .add_plugin(BulletPlugin)
         .add_plugin(TargetPlugin)
@@ -24,11 +27,12 @@ fn main() {
         .add_startup_system(asset_loading.in_base_set(StartupSet::PreStartup))
         // .add_startup_system(create_ui_on_selection)
         .add_startup_system(spawn_camera)
-        .add_startup_system(spawn_basic_scene)
+        // .add_startup_system(spawn_basic_scene)
+        .add_system(spawn_basic_scene.in_schedule(OnEnter(GameState::GamePlay)))
         .add_system(camera_controls)
         // .add_system(what_is_selected)
-        .add_system(create_ui_on_selection)
-        .add_system(tower_button_clicked)
+        // .add_system(create_ui_on_selection)
+        // .add_system(tower_button_clicked)
         .run();
 }
 
@@ -54,7 +58,10 @@ fn spawn_basic_scene(
                 transform: Transform::from_xyz(-i as f32, 0.2, 1.5),
                 ..default()
             })
-            .insert(Target { speed: 0.3 })
+            .insert(Target {
+                speed: 0.3,
+                ..default()
+            })
             .insert(Health { value: 3 })
             .insert(Name::new("Target"));
 

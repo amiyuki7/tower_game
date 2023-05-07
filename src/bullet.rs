@@ -17,9 +17,13 @@ impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Lifetime>()
             .register_type::<Bullet>()
-            .add_system(move_bullets)
-            .add_system(bullet_collision)
-            .add_system(bullet_despawn);
+            // .add_system(move_bullets)
+            // .add_system(bullet_collision)
+            // .add_system(bullet_despawn);
+            .add_systems(
+                (bullet_collision, move_bullets, bullet_despawn)
+                    .in_set(OnUpdate(GameState::GamePlay)),
+            );
     }
 }
 

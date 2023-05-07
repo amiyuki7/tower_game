@@ -5,15 +5,26 @@ use bevy::utils::FloatOrd;
 pub struct Tower {
     pub shooting_timer: Timer,
     pub bullet_offset: Vec3,
+    pub range: f32,
 }
 
 pub struct TowerPlugin;
 
 impl Plugin for TowerPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Tower>().add_system(tower_shooting)
-        // .add_system(build_tower);
-        ;
+        // app.register_type::<Tower>().add_system(tower_shooting)
+        // // .add_system(build_tower);
+        app.register_type::<Tower>()
+            // .register_inspectable::<TowerType>()
+            .add_systems(
+                (
+                    tower_shooting,
+                    tower_button_clicked,
+                    create_ui_on_selection,
+                    grey_tower_buttons.after(create_ui_on_selection),
+                )
+                    .in_set(OnUpdate(GameState::GamePlay)),
+            );
     }
 }
 
@@ -34,6 +45,9 @@ fn tower_shooting(
 
             let direction = targets
                 .iter()
+                .filter(|target_transform| {
+                    Vec3::distance(target_transform.translation(), bullet_spawn) < tower.range
+                })
                 .min_by_key(|target_transform| {
                     FloatOrd(Vec3::distance(target_transform.translation(), bullet_spawn))
                 })
@@ -88,4 +102,27 @@ pub fn spawn_tower(
             });
         })
         .id()
+}
+
+#[derive(Component, Reflect, Default)]
+pub struct TowerButtonState {
+    pub cost: u32,
+    pub affordable: bool,
+}
+
+fn grey_tower_buttons(
+    mut buttons: Query<(&mut BackgroundColor, &mut TowerButtonState)>,
+    player: Query<&Player>,
+) {
+    let player = player.single();
+
+    for (mut tint, mut state) in &mut buttons {
+        if player.money >= state.cost {
+            state.affordable = true;
+            *tint = Color::WHITE.into();
+        } else {
+            state.affordable = false;
+            *tint = Color::DARK_GRAY.into();
+        }
+    }
 }

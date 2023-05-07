@@ -2,10 +2,14 @@ use bevy::prelude::*;
 use bevy_mod_picking::Selection;
 
 pub mod bullet;
+pub mod main_menu;
+pub mod player;
 pub mod target;
 pub mod tower;
 
 pub use bullet::*;
+pub use main_menu::*;
+pub use player::*;
 pub use target::*;
 pub use tower::*;
 
@@ -13,6 +17,13 @@ pub const WIDTH: f32 = 1280.0;
 pub const HEIGHT: f32 = 720.0;
 
 pub const CUBE_COLOUR: Color = Color::rgb(0.67, 0.84, 0.92);
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum GameState {
+    #[default]
+    MainMenu,
+    GamePlay,
+}
 
 #[derive(Resource, Default)]
 pub struct GameAssets {
@@ -122,6 +133,7 @@ impl TowerType {
                 Tower {
                     shooting_timer: Timer::from_seconds(0.5, TimerMode::Repeating),
                     bullet_offset: Vec3::new(0.0, 0.6, 0.0),
+                    range: 4.5,
                 },
             ),
             Potato => (
@@ -129,6 +141,7 @@ impl TowerType {
                 Tower {
                     shooting_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
                     bullet_offset: Vec3::new(0.0, 0.6, 0.0),
+                    range: 4.5,
                 },
             ),
             Cabbage => (
@@ -136,6 +149,7 @@ impl TowerType {
                 Tower {
                     shooting_timer: Timer::from_seconds(0.8, TimerMode::Repeating),
                     bullet_offset: Vec3::new(0.0, 0.6, 0.0),
+                    range: 4.5,
                 },
             ),
         }
@@ -172,6 +186,8 @@ impl TowerType {
 pub fn create_ui(commands: &mut Commands, asset_server: &AssetServer) {
     let towers = [TowerType::Tomato, TowerType::Potato, TowerType::Cabbage];
 
+    let costs = [50, 80, 110];
+
     let button_icons: [Handle<Image>; 3] = [
         asset_server.load("images/tomato_tower.png"),
         asset_server.load("images/potato_tower.png"),
@@ -205,6 +221,10 @@ pub fn create_ui(commands: &mut Commands, asset_server: &AssetServer) {
                         image: button_icons[i].clone().into(),
                         ..default()
                     })
+                    .insert(TowerButtonState {
+                        cost: costs[i],
+                        affordable: false,
+                    })
                     .insert(towers[i]);
             }
         });
@@ -235,15 +255,19 @@ pub fn create_ui_on_selection(
 }
 
 pub fn tower_button_clicked(
-    interactions: Query<(&Interaction, &TowerType), Changed<Interaction>>,
+    interactions: Query<(&Interaction, &TowerType, &TowerButtonState), Changed<Interaction>>,
     mut commands: Commands,
     selection: Query<(Entity, &Selection, &Transform)>,
+    mut player: Query<&mut Player>,
     assets: Res<GameAssets>,
 ) {
-    for (interaction, tower_type) in &interactions {
+    let mut player = player.single_mut();
+    for (interaction, tower_type, button_state) in &interactions {
         if matches!(interaction, Interaction::Clicked) {
             for (entity, selection, transform) in &selection {
-                if selection.selected() {
+                if selection.selected() && player.money >= button_state.cost {
+                    player.money -= button_state.cost;
+
                     commands.entity(entity).despawn_recursive();
 
                     spawn_tower(&mut commands, &assets, transform.translation, *tower_type);
